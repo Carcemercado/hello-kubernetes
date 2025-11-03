@@ -56,10 +56,13 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up K3d
-        uses: nolar/setup-k3d-k3s@v1
+        uses: AbsaOSS/k3d-action@v2
         with:
-          version: v5.4.6
-          k3d-name: test-cluster
+          cluster-name: "test-cluster"
+          args: >-
+            --port "80:80@loadbalancer"
+            --port "443:443@loadbalancer"
+            --agents 1
 
       - name: Install Helm
         uses: azure/setup-helm@v3
