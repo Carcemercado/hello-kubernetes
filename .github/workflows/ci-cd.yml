@@ -49,7 +49,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == '"'"'refs/heads/main'"'"'
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
@@ -58,7 +58,7 @@ jobs:
       - name: Create k3d Cluster
         uses: AbsaOSS/k3d-action@v2
         with:
-          cluster-name: "test-cluster"
+          cluster-name: "hello-kubernetes"
           args: >-
             --agents 1
             --no-lb
@@ -69,19 +69,10 @@ jobs:
         with:
           version: v3.12.0
 
-      - name: Install NGINX Ingress
-        run: |
-          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-          helm repo update
-          helm install nginx-ingress ingress-nginx/ingress-nginx
-
       - name: Deploy Application
         run: |
-          # Wait for NGINX Ingress to be ready
-          kubectl wait --namespace default \
-            --for=condition=ready pod \
-            --selector=app.kubernetes.io/component=controller \
-            --timeout=90s
+          # Create namespace if it doesn't exist
+          kubectl create namespace hello-kubernetes --dry-run=client -o yaml | kubectl apply -f -
 
           # Deploy the application
           cd helm
