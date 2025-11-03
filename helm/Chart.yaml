@@ -1,0 +1,13 @@
+apiVersion: v2
+name: hello-kubernetes
+description: A Helm chart for my hello-kuberenetes application. This is a simple application that demonstrates Kubernetes concepts.
+version: 0.1.0
+appVersion: "1.0.0"
+type: application
+keywords:
+  - kubernetes
+  - hello
+  - demo
+maintainers:
+  - name: Carlos Arce
+    email: arce.code@gmail.com  

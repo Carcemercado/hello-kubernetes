@@ -1,0 +1,9 @@
+replica: 1
+imge:
+  repository: carcemercado/hello-kubernetes
+  tag: latest
+  pullPolicy: IfNotPresent
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
