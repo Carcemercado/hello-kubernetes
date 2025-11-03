@@ -33,6 +33,10 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=ref,event=pr
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -62,9 +66,21 @@ jobs:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
+      - name: Debug environment
+        run: |
+          echo "Current directory: $PWD"
+          ls -la
+          echo "Helm directory contents:"
+          ls -la helm/
+          echo "Kubernetes cluster info:"
+          kubectl cluster-info
+          kubectl get nodes
+
       - name: Deploy to Kubernetes
         run: |
           cd helm
           helm upgrade --install hello-kubernetes ./hello-kubernetes \
             --set image.repository="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
-            --set image.tag="${{ github.sha }}"
+            --set image.tag="${{ github.sha }}" \
+            --set image.pullPolicy=Always \
+            --debug
