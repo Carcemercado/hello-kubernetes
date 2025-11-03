@@ -55,32 +55,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set up K3d
+        uses: nolar/setup-k3d-k3s@v1
+        with:
+          version: v5.4.6
+          k3d-name: test-cluster
+
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
           version: v3.12.0
 
-      - name: Configure Kubernetes
-        uses: azure/k8s-set-context@v3
-        with:
-          method: kubeconfig
-          kubeconfig: ${{ secrets.KUBE_CONFIG }}
-
-      - name: Debug environment
-        run: |
-          echo "Current directory: $PWD"
-          ls -la
-          echo "Helm directory contents:"
-          ls -la helm/
-          echo "Kubernetes cluster info:"
-          kubectl cluster-info
-          kubectl get nodes
-
       - name: Deploy to Kubernetes
         run: |
+          # Wait for the cluster to be ready
+          kubectl wait --for=condition=Ready nodes --all --timeout=300s
+          
+          # Deploy the application
           cd helm
           helm upgrade --install hello-kubernetes ./hello-kubernetes \
             --set image.repository="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
             --set image.tag="${{ github.sha }}" \
             --set image.pullPolicy=Always \
             --debug
+          
+          # Wait for the deployment to be ready
+          kubectl wait --for=condition=available deployment/hello-kubernetes --timeout=300s
+          
+          # Show deployment status
+          kubectl get pods
+          kubectl get services
