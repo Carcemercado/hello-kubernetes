@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/your-username/hello-kubernetes
+  repository: ghcr.io/carcemercado/hello-kubernetes
   tag: latest
   pullPolicy: Always
 
