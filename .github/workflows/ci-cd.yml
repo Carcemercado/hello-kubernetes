@@ -49,42 +49,54 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == '"'"'refs/heads/main'"'"'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up K3d
+      - name: Create k3d Cluster
         uses: AbsaOSS/k3d-action@v2
         with:
           cluster-name: "test-cluster"
           args: >-
-            --port "80:80@loadbalancer"
-            --port "443:443@loadbalancer"
             --agents 1
+            --no-lb
+            --k3s-arg "--no-deploy=traefik@server:*"
 
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
           version: v3.12.0
 
-      - name: Deploy to Kubernetes
+      - name: Install NGINX Ingress
         run: |
-          # Wait for the cluster to be ready
-          kubectl wait --for=condition=Ready nodes --all --timeout=300s
-          
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm install nginx-ingress ingress-nginx/ingress-nginx
+
+      - name: Deploy Application
+        run: |
+          # Wait for NGINX Ingress to be ready
+          kubectl wait --namespace default \
+            --for=condition=ready pod \
+            --selector=app.kubernetes.io/component=controller \
+            --timeout=90s
+
           # Deploy the application
           cd helm
           helm upgrade --install hello-kubernetes ./hello-kubernetes \
             --set image.repository="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" \
             --set image.tag="${{ github.sha }}" \
             --set image.pullPolicy=Always \
-            --debug
-          
-          # Wait for the deployment to be ready
-          kubectl wait --for=condition=available deployment/hello-kubernetes --timeout=300s
-          
-          # Show deployment status
-          kubectl get pods
-          kubectl get services
+            --wait \
+            --timeout 5m
+
+      - name: Verify Deployment
+        run: |
+          echo "Checking pod status..."
+          kubectl get pods -o wide
+          echo "Checking service status..."
+          kubectl get services -o wide
+          echo "Checking ingress status..."
+          kubectl get ingress -o wide
